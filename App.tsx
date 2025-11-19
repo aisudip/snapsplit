@@ -4,7 +4,7 @@ import UploadScreen from './components/UploadScreen';
 import AssignmentScreen from './components/AssignmentScreen';
 import SummaryScreen from './components/SummaryScreen';
 import { parseReceiptImage } from './services/geminiService';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, X } from 'lucide-react';
 
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>('upload');
@@ -31,7 +31,6 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      // Use the specific error message from the service if available
       setError(err.message || "Something went wrong analyzing the receipt. Please try again.");
       setStep('upload');
     }
@@ -54,15 +53,8 @@ const App: React.FC = () => {
   };
 
   return (
-    // Changed: min-h-[100dvh] ensures it fills mobile viewports correctly
-    // md:p-8 adds padding only on desktop to center the card
-    <div className="min-h-[100dvh] bg-gray-100 flex items-center justify-center md:p-8">
+    <div className="min-h-[100dvh] bg-gray-100 flex items-center justify-center md:p-8 safe-area-padding">
       
-      {/* Changed: 
-          - w-full h-[100dvh] on mobile (full screen app feel)
-          - md:h-[85vh] md:max-w-md on desktop (constrained card)
-          - md:rounded-3xl only on desktop
-      */}
       <div className="w-full h-[100dvh] md:h-[85vh] md:max-w-md bg-white md:rounded-3xl md:shadow-2xl overflow-hidden relative md:border border-gray-200 flex flex-col">
         
         {/* Dynamic Content */}
@@ -100,18 +92,32 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* Error Toast */}
+        {/* Error Toast - Positioned safer for mobile */}
         {error && (
-          <div className="absolute top-4 left-4 right-4 bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl flex items-start gap-3 shadow-lg animate-bounce-in z-50">
-            <AlertCircle className="shrink-0 mt-0.5" size={18} />
-            <div className="flex-1">
-                <p className="text-sm font-medium">{error}</p>
-                <button onClick={() => setError(null)} className="text-xs underline mt-1 opacity-80 hover:opacity-100">Dismiss</button>
+          <div className="absolute top-safe-offset left-4 right-4 z-50 animate-bounce-in">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl shadow-xl flex items-start gap-3 backdrop-blur-sm bg-opacity-95">
+              <AlertCircle className="shrink-0 mt-0.5" size={20} />
+              <div className="flex-1">
+                  <p className="text-sm font-medium leading-relaxed">{error}</p>
+              </div>
+              <button 
+                onClick={() => setError(null)} 
+                className="p-1 -mr-2 -mt-2 text-red-400 hover:text-red-700 rounded-full hover:bg-red-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
         )}
 
       </div>
+      
+      <style>{`
+        .top-safe-offset {
+            top: env(safe-area-inset-top, 20px);
+            margin-top: 1rem;
+        }
+      `}</style>
     </div>
   );
 };

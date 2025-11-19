@@ -1,16 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ReceiptItem } from "../types";
 
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  console.error("API_KEY is missing from environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-build' });
+// Helper to safely get API Key
+const getApiKey = (): string | undefined => {
+  try {
+    // We use process.env.API_KEY as strictly required.
+    // In some build setups, accessing 'process' directly without a check might throw if not polyfilled.
+    return process.env.API_KEY;
+  } catch (e) {
+    console.error("Failed to access process.env", e);
+    return undefined;
+  }
+};
 
 // Helper to resize and compress image before sending to Gemini
-// This significantly reduces payload size and prevents network timeouts on mobile
 const compressImage = (base64Str: string, maxWidth = 1024, quality = 0.7): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -31,12 +34,11 @@ const compressImage = (base64Str: string, maxWidth = 1024, quality = 0.7): Promi
       
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        resolve(base64Str); // Fallback if canvas fails
+        resolve(base64Str); // Fallback
         return;
       }
       
       ctx.drawImage(img, 0, 0, width, height);
-      // Return compressed JPEG
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = (err) => reject(err);
@@ -44,12 +46,22 @@ const compressImage = (base64Str: string, maxWidth = 1024, quality = 0.7): Promi
 };
 
 export const parseReceiptImage = async (base64Image: string): Promise<ReceiptItem[]> => {
+  // 1. Initialize Client INSIDE the function to ensure we grab the latest env var
+  const apiKey = getApiKey();
+  
+  if (!apiKey || apiKey.includes('dummy')) {
+     console.error("API Key Check Failed. Value found:", apiKey ? "Present (masked)" : "Missing");
+     throw new Error("API Key is missing. Please check your Vercel Environment Variables settings.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+
   try {
-    // 1. Compress image (Crucial for mobile performance)
+    // 2. Compress image
     const compressedBase64 = await compressImage(base64Image);
     const cleanBase64 = compressedBase64.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
-    // 2. Call Gemini API
+    // 3. Call Gemini API
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: {
@@ -93,18 +105,22 @@ export const parseReceiptImage = async (base64Image: string): Promise<ReceiptIte
 
     const rawItems = JSON.parse(response.text) as { description: string; price: number }[];
     
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+        return [];
+    }
+
     return rawItems.map((item, index) => ({
       id: `item-${Date.now()}-${index}`,
-      description: item.description,
-      price: item.price,
+      description: item.description || "Unknown Item",
+      price: Number(item.price) || 0,
     }));
 
   } catch (error: any) {
     console.error("Error parsing receipt with Gemini:", error);
     
-    // Provide specific error messages for common deployment issues
-    if (error.message?.includes('403') || error.message?.includes('API key')) {
-        throw new Error("API Key is missing or invalid. Please check your Vercel/Environment settings.");
+    // Catch auth errors specifically
+    if (error.message?.includes('403') || error.toString().includes('API key')) {
+        throw new Error("API Key invalid or restricted. Check your Google AI Studio API key permissions.");
     }
     
     throw error;
