@@ -1,11 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { Camera, Upload, ScanLine } from 'lucide-react';
+import { Camera, Image as ImageIcon, ScanLine, UploadCloud } from 'lucide-react';
 
 interface UploadScreenProps {
   onImageSelected: (base64: string) => void;
 }
 
 const UploadScreen: React.FC<UploadScreenProps> = ({ onImageSelected }) => {
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -14,9 +15,17 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onImageSelected }) => {
     if (file) {
       processFile(file);
     }
+    // Reset value to allow selecting same file again immediately if needed
+    event.target.value = '';
   };
 
   const processFile = (file: File) => {
+    // Basic validation
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
@@ -46,46 +55,72 @@ const UploadScreen: React.FC<UploadScreenProps> = ({ onImageSelected }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center animate-fade-in">
+    <div 
+        className={`flex flex-col items-center justify-center h-full p-6 text-center animate-fade-in transition-colors duration-300 ${dragActive ? 'bg-primary/5' : ''}`}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+    >
       <div className="mb-8 relative">
         <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
-        <div className="relative bg-white p-6 rounded-full shadow-xl">
+        <div className="relative bg-white p-6 rounded-full shadow-xl ring-1 ring-gray-100">
           <ScanLine size={48} className="text-primary" />
         </div>
       </div>
 
       <h1 className="text-3xl font-bold text-gray-800 mb-2">SnapSplit</h1>
-      <p className="text-gray-500 mb-8 max-w-xs">
-        Split bills effortlessly. Scan your receipt and let AI handle the math.
+      <p className="text-gray-500 mb-8 max-w-xs leading-relaxed">
+        Scan your receipt or upload a photo to start splitting the bill.
       </p>
 
-      <div 
-        className={`w-full max-w-md border-2 border-dashed rounded-2xl p-8 transition-all duration-200 flex flex-col items-center justify-center gap-4 cursor-pointer bg-white/50 backdrop-blur-sm hover:bg-white/80 ${dragActive ? 'border-primary bg-primary/5' : 'border-gray-300'}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <div className="p-4 bg-primary/10 rounded-full text-primary">
-           <Camera size={32} />
-        </div>
-        <div>
-          <p className="font-semibold text-gray-700">Tap to upload receipt</p>
-          <p className="text-sm text-gray-400 mt-1">or drag and drop image here</p>
-        </div>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleFileChange} 
-          accept="image/*" 
-          className="hidden" 
-        />
+      <div className="w-full max-w-xs space-y-4 z-10">
+        
+        {/* Camera Button - Triggers Native Camera */}
+        <button
+          onClick={() => cameraInputRef.current?.click()}
+          className="w-full py-4 bg-gray-900 text-white rounded-2xl shadow-xl hover:bg-gray-800 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
+        >
+          <div className="bg-white/10 p-2 rounded-xl group-hover:scale-110 transition-transform">
+             <Camera size={22} strokeWidth={2.5} />
+          </div>
+          <span className="text-lg font-semibold tracking-wide">Scan Receipt</span>
+        </button>
+
+        {/* Upload Button - Opens Gallery/File Picker */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm hover:border-primary/30 hover:bg-gray-50 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+        >
+           <ImageIcon size={22} className="text-gray-400" strokeWidth={2.5} />
+           <span className="font-semibold">Upload Image</span>
+        </button>
+      
       </div>
 
-      <div className="mt-8 flex gap-2 text-xs text-gray-400">
-        <span>Powered by Gemini 2.5 Flash</span>
+      {/* Drag Drop Hint for Desktop */}
+      <div className="mt-8 flex items-center gap-2 text-sm text-gray-400/80 font-medium">
+         <UploadCloud size={16} />
+         <span>or drop image anywhere</span>
       </div>
+
+      {/* Hidden Inputs */}
+      {/* capture="environment" prefers the rear camera on mobile devices */}
+      <input 
+        type="file" 
+        ref={cameraInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        capture="environment" 
+        className="hidden" 
+      />
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
     </div>
   );
 };
