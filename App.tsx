@@ -29,9 +29,10 @@ const App: React.FC = () => {
         setItems(extractedItems);
         setStep('assigning');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Something went wrong analyzing the receipt. Please try again.");
+      // Use the specific error message from the service if available
+      setError(err.message || "Something went wrong analyzing the receipt. Please try again.");
       setStep('upload');
     }
   };
