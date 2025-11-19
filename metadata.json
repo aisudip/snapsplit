@@ -1,0 +1,7 @@
+{
+  "name": "SnapSplit",
+  "description": "Effortlessly split restaurant bills by snapping a photo. Extract items using Gemini AI, assign them to friends, and calculate individual shares instantly.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
