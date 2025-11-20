@@ -44,6 +44,10 @@ const App: React.FC = () => {
     setStep('summary');
   };
 
+  const handleEditAllocation = () => {
+    setStep('assigning');
+  };
+
   const resetApp = () => {
     setItems([]);
     setFinalFriends([]);
@@ -77,7 +81,14 @@ const App: React.FC = () => {
           )}
 
           {step === 'assigning' && (
-            <AssignmentScreen items={items} onComplete={handleAssignmentComplete} />
+            <AssignmentScreen 
+              items={items} 
+              onComplete={handleAssignmentComplete}
+              initialFriends={finalFriends.length > 0 ? finalFriends : undefined}
+              initialAllocations={Object.keys(finalAllocations).length > 0 ? finalAllocations : undefined}
+              initialTax={finalTax}
+              initialTip={finalTip}
+            />
           )}
 
           {step === 'summary' && (
@@ -88,6 +99,7 @@ const App: React.FC = () => {
               tax={finalTax} 
               tip={finalTip}
               onReset={resetApp}
+              onEdit={handleEditAllocation}
             />
           )}
         </div>

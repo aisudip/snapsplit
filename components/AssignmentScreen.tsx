@@ -4,6 +4,10 @@ import { Plus, User, Trash2, UserPlus, Check, DollarSign, Split } from 'lucide-r
 
 interface AssignmentScreenProps {
   items: ReceiptItem[];
+  initialFriends?: Friend[];
+  initialAllocations?: Allocation;
+  initialTax?: number;
+  initialTip?: number;
   onComplete: (friends: Friend[], allocation: Allocation, tax: number, tip: number) => void;
 }
 
@@ -12,15 +16,22 @@ const COLORS = [
   'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-orange-500'
 ];
 
-const AssignmentScreen: React.FC<AssignmentScreenProps> = ({ items, onComplete }) => {
-  const [friends, setFriends] = useState<Friend[]>([
+const AssignmentScreen: React.FC<AssignmentScreenProps> = ({ 
+  items, 
+  onComplete,
+  initialFriends,
+  initialAllocations,
+  initialTax,
+  initialTip
+}) => {
+  const [friends, setFriends] = useState<Friend[]>(initialFriends || [
     { id: 'me', name: 'Me', color: COLORS[0] }
   ]);
-  const [allocations, setAllocations] = useState<Allocation>({});
+  const [allocations, setAllocations] = useState<Allocation>(initialAllocations || {});
   const [newFriendName, setNewFriendName] = useState('');
-  const [activeFriendId, setActiveFriendId] = useState<string>('me');
-  const [tax, setTax] = useState<string>('0');
-  const [tip, setTip] = useState<string>('0');
+  const [activeFriendId, setActiveFriendId] = useState<string>(initialFriends?.[0]?.id || 'me');
+  const [tax, setTax] = useState<string>(initialTax?.toString() || '0');
+  const [tip, setTip] = useState<string>(initialTip?.toString() || '0');
 
   // Calculate subtotal
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.price, 0), [items]);
